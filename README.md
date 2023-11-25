@@ -1,2 +1,2 @@
 # dendritic-renewal
-Code used in "Dendritic excitability controls overdispersion"
+Code used in the paper "Dendritic excitability controls overdispersion"
