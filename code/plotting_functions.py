@@ -2,11 +2,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 import seaborn as sns
+import matplotlib as mpl
+import pandas as pd
 
 
 plt.rcParams.update({'font.size': 8})
 
+new_rc_params = {'text.usetex': False,
+"svg.fonttype": 'none'
+}
+
+mpl.rcParams.update(new_rc_params)
+
 from dendritic_renewal_model import input_potential, params_reset, input_potential_gauss
+
+def save_plot_data_csv(data_frame, filename):
+    
+    data_frame.to_csv('../data/' + filename, index=False)
+    
+    return
+
 
 def plot_input_potential(input_potential, filename, xd_I=None):
     """
@@ -50,7 +65,10 @@ def plot_input_potential(input_potential, filename, xd_I=None):
     
     plt.legend(frameon=False)
     plt.tight_layout()
-    plt.savefig('../results/' + filename + '.svg')
+    plt.savefig('../results/' + filename + '.svg', dpi=300)
+    
+    data_frame = pd.DataFrame({"x" : X, "h" : h})
+    save_plot_data_csv(data_frame, filename=filename + '.csv')
     
     return
 
@@ -345,7 +363,6 @@ def plot_A_inf_monte_carlo(A_inf_data, A_inf_mc_data, A_inf_mc_error, title, fil
     """
     I_d_vec = np.linspace(0, 5, 3)
     I_s_vec = np.linspace(0, 5, 31)
-    #I_s_vec = np.linspace(0, 5, 31)
     
     I_d_mc_vec = np.linspace(0, 5, 3)
     I_s_mc_vec = np.linspace(0, 5, 5)
@@ -367,21 +384,37 @@ def plot_A_inf_monte_carlo(A_inf_data, A_inf_mc_data, A_inf_mc_error, title, fil
         
     
     plt.xlabel(r'$I_{s}$')
-    plt.ylabel(r'$A_{\infty}$ [Hz]')
+    plt.ylabel('Frequency [Hz]')
     plt.xticks([0, 2.5, 5])
-    #plt.yticks([0, 50, 100, 150])
     plt.yticks([0, 50, 100])
-    
     plt.xlim([-0.2, 5.2])
-    
-    
-    #plt.title(title)
     
     plt.tight_layout()
     sns.despine()
     plt.legend(frameon=False)
     
-    plt.savefig(filename)
+    plt.savefig('../results/' + filename + '.svg', dpi=300)
+    
+    # save source image data in csv
+    dic = {"A_inf_data" : A_inf_data, "A_inf_mc_data" : A_inf_mc_data, "A_inf_data_passive":A_inf_data_passive}
+    dic["A_inf_data"] = [tuple(scores) for scores in dic["A_inf_data"]]
+    dic["A_inf_data_passive"] = [tuple(scores) for scores in dic["A_inf_data_passive"]]
+    dic["A_inf_mc_data"] = [tuple(scores) for scores in dic["A_inf_mc_data"]]
+    data_frame = pd.DataFrame.from_records(dic)
+    save_plot_data_csv(data_frame, filename='../data/' + filename + '_data.csv')
+    
+    data_frame = pd.DataFrame.from_records({"I_s_vec" : I_s_vec})
+    save_plot_data_csv(data_frame, filename='../data/' + filename + '_Isvec.csv')
+    
+    data_frame = pd.DataFrame.from_records({"I_d_vec" : I_d_vec})
+    save_plot_data_csv(data_frame, filename='../data/' + filename + '_Idvec.csv')
+    
+    data_frame = pd.DataFrame.from_records({"I_s_mc_vec" : I_s_mc_vec})
+    save_plot_data_csv(data_frame, filename='../data/' + filename + '_Ismcvec.csv')
+    
+    data_frame = pd.DataFrame.from_records({"I_d_mc_vec" : I_d_mc_vec})
+    save_plot_data_csv(data_frame, filename='../data/' + filename + '_Idmcvec.csv')
+    
     
     return
 
@@ -697,50 +730,6 @@ def plot_gauss_dendrite_gauss_input_monte_carlo():
         
     return
 
-def plot_gauss_sigma_changes():
-    
-    params = params_reset()
-    sigma_list = [0.5, 1000]
-    sigma_I_list = [0.001, 0.5]
-    
-    sigma_name = ['low', 'high']
-    sigma_I_name = ['low', 'high']
-    
-    I_d_vec = np.linspace(0, 5, 3)
-    I_s_vec = np.linspace(0, 5, 31)
-    
-    for i, sigma in enumerate(sigma_list):
-        for j, sigma_I in enumerate(sigma_I_list):
-            
-            
-            with open('../data/integral_hotspot_active_sigma_I_' + str(sigma_I) + '_sigma_'+str(sigma) + '.pkl', 'rb') as f:
-                A_inf_active = pickle.load(f)
-                
-            with open('../data/integral_hotspot_active_sigma_I_' + str(sigma_I) + '_sigma_'+ str(sigma) + '_cv.pkl', 'rb') as f:
-                cv_active = pickle.load(f)
-            
-            with open('../data/integral_hotspot_passive_sigma_I_' + str(sigma_I) + '_sigma_'+str(sigma) + '.pkl', 'rb') as f:
-                A_inf_passive = pickle.load(f)
-                
-            with open('../data/integral_hotspot_passive_sigma_I_' + str(sigma_I) + '_sigma_'+str(sigma) + '_cv.pkl', 'rb') as f:
-                cv_passive = pickle.load(f)
-            
-            title = 'Active Dendrite' + ', $\sigma=$' + f'{sigma}' + ', $\sigma_{I}=$' + f'{sigma_I}'
-            filename = '../results/integral_hotspot_active_sigma_I_' + sigma_I_name[j] + '_sigma_'+ sigma_name[i] + '.svg'
-            plot_A_inf(A_inf_active-A_inf_passive, A_inf_passive-A_inf_passive, I_s_vec, I_d_vec, title, filename)
-            
-            filename = '../results/integral_hotspot_active_sigma_I_' + sigma_I_name[j] + '_sigma_'+ sigma_name[i] + '_cv.svg'
-            plot_cv2(cv_active-cv_passive, cv_passive-cv_passive, I_s_vec, I_d_vec, title, filename)
-            
-            
-            title = 'Passive Dendrite' + ', $\sigma=$' + f'{sigma}' + ', $\sigma_{I}=$' + f'{sigma_I}'
-            filename = '../results/integral_hotspot_passive_sigma_I_' + sigma_I_name[j] + '_sigma_'+ sigma_name[i] + '.svg'
-            plot_A_inf(A_inf_passive, A_inf_passive, I_s_vec, I_d_vec, title, filename)
-            
-            filename = '../results/integral_hotspot_passive_sigma_I_' + sigma_I_name[j]  + '_sigma_'+ sigma_name[i] + '_cv.svg'
-            plot_cv2(cv_passive, cv_passive, I_s_vec, I_d_vec, title, filename)
-         
-    return
 
 def plot_cv(CV_data, CV_mc_data, title, filename, CV_data_passive=None):
 
@@ -768,20 +757,26 @@ def plot_cv(CV_data, CV_mc_data, title, filename, CV_data_passive=None):
         
     
     plt.xlabel(r'$I_{s}$')
-    plt.ylabel(r'$C_{v}$')
+    plt.ylabel('CV')
     plt.xticks([0, 2.5, 5])
     plt.yticks([0.5, 1, 1.5])
     
     plt.xlim([-0.2, 5.2])
     
     
-    #plt.title(title)
-    
     plt.tight_layout()
     sns.despine()
     plt.legend(frameon=False)
     
-    plt.savefig(filename)
+    plt.savefig('../results/' + filename + '.svg')
+    
+    # save source image data in csv
+    dic = {"CV_data" : CV_data, "CV_mc_data" : CV_mc_data, "CV_data_passive":CV_data_passive}
+    dic["CV_data"] = [tuple(scores) for scores in dic["CV_data"]]
+    dic["CV_data_passive"] = [tuple(scores) for scores in dic["CV_data_passive"]]
+    dic["CV_mc_data"] = [tuple(scores) for scores in dic["CV_mc_data"]]
+    data_frame = pd.DataFrame.from_records(dic)
+    save_plot_data_csv(data_frame, filename='../data/' + filename + '_data.csv')
     
     return
 
@@ -806,15 +801,10 @@ def plot_cv_vs_A(A_active, A_mc_active, A_passive, A_mc_passive, cv_active, cv_p
     
         
     
-    plt.xlabel(r'$A_{\infty}$ [Hz]')
-    plt.ylabel(r'$C_{v}$')
+    plt.xlabel('Frequency [Hz]')
+    plt.ylabel('CV')
     plt.xticks([0, 50, 100, 150])
     plt.yticks([0.5, 1, 1.5])
-    
-    #plt.xlim([0, 150])
-    
-    
-    #plt.title(title)
     
     plt.tight_layout()
     sns.despine()
@@ -919,12 +909,7 @@ def plot_figure1():
     with open('../data/integral_passive.pkl',  'rb') as f:
         A_inf_data_passive = pickle.load(f)
         
-    # filename = '../results/figure1_passive.svg'
-    # title = 'Passive Dendrite'
-    # plot_A_inf_monte_carlo(A_inf_data_passive, A_inf_mc_data_passive, A_inf_mc_error_passive, title, filename)
     
-    
-
     with open('../data/monte_carlo_active.pkl',  'rb') as f:
         results_active = pickle.load(f)
         
@@ -935,7 +920,7 @@ def plot_figure1():
     with open('../data/integral_active.pkl',  'rb') as f:
         A_inf_data_active = pickle.load(f)
         
-    filename = '../results/figure1_active.svg'
+    filename = 'figure1_b'
     title = 'Active Dendrite'
     plot_A_inf_monte_carlo(A_inf_data_active, A_inf_mc_data_active, A_inf_mc_error_active, title, filename, A_inf_data_passive=A_inf_data_passive)
     
@@ -947,9 +932,9 @@ def plot_figure1():
     with open('../data/integral_passive_cv.pkl',  'rb') as f:
         cv_passive = pickle.load(f)
         
-    filename = '../results/figure1_passive_cv.svg'
-    title = 'Passive Dendrite'
-    plot_cv(cv_passive, cv_passive_mc, title, filename)
+    #filename = '../results/figure1_passive_cv.svg'
+    #title = 'Passive Dendrite'
+    #plot_cv(cv_passive, cv_passive_mc, title, filename)
     
     
     with open('../data/monte_carlo_active_cv.pkl',  'rb') as f:
@@ -958,7 +943,7 @@ def plot_figure1():
     with open('../data/integral_active_cv.pkl',  'rb') as f:
         cv_active = pickle.load(f)
         
-    filename = '../results/figure1_active_cv.svg'
+    filename = 'figure1_c'
     title = 'Active Dendrite'
     plot_cv(cv_active, cv_active_mc, title, filename, cv_passive)
     
